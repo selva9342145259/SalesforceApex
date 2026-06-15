@@ -27,4 +27,15 @@ for (Account acc : newAcc) {
     }
     update updateOpportunity;
 }
+// If Account Rating = Hot:
+// Only System Admin can edit it
+public static void adminOnlyEdit(List<Account> newAcc) {
+    User currentUser = [Select Profile.Name from User Where id =:UserInfo.getUserId() Limit 1];
+    for (Account acc : newAcc) {
+        if(acc.Rating=='Hot'&&currentUser.Profile.Name != 'System Administrator'){
+                    acc.addError('Object can Modify only Admin');
+        }
+        
+    }
+    }
 }
