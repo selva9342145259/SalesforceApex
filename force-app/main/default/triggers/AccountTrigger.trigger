@@ -8,4 +8,7 @@ trigger AccountTrigger on Account (before update) {
        if(Trigger.isBefore&&Trigger.isUpdate){
           AccountHandler.adminOnlyEdit(Trigger.New);
        }
+       if(Trigger.isAfter && Trigger.isInsert){
+         AccountHandler.accountShare(Trigger.New);
+       }
 }

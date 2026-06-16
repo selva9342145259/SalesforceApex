@@ -37,5 +37,20 @@ public static void adminOnlyEdit(List<Account> newAcc) {
         }
         
     }
+
     }
+//     If Account rating = hot:
+// Share Account with Regional Director.
+public static void accountShare(List<Account> accNew){
+    List<AccountShare> shares = new List<AccountShare>();
+
+    User userId =[Select id from User where profile.Name ='Sales User' Limit 1]; 
+   for(Account acc: accNew) {
+        if(acc.Rating!= null && acc.Rating == 'Hot'){
+            shares.add(new AccountShare( AccountId =acc.Id,UserOrGroupId = userId.Id,AccountAccessLevel ='Edit',OpportunityAccessLevel ='Read',CaseAccessLevel = 'Read',RowCause =Schema.AccountShare.RowCause.Manual
+            ));
+        }
+   }
+   if(!shares.isEmpty) insert shares;
+}
 }
