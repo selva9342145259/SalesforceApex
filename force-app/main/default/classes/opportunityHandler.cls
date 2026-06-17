@@ -25,4 +25,21 @@ public with sharing class opportunityHandler {
             }
         }
     }
-  }
+
+// When an Opportunity is sent for approval:
+// Approval_Status__c = Pending​
+// Sales team should not modify important deal information until manager approval is completed. use Before Update
+// block fields:
+
+// Prevent updatig Amount
+// Prevent changing Stage
+public static void approvalUpdate(List<Opportunity> newOpp ,Map<Id,Opportunity> oldMap){
+    User userProfile =[Select Profile.Name from user Where id = :UserInfo.getUserId()];
+    for(Opportunity opp: newOpp){
+        Opportunity oldOpp = oldMap.get(opp.Id);
+        if(oldOpp.Approval_Status__c == 'Pending' &&  userProfile.Profile.Name == 'Sales User'&&(opp.Amount != oldOpp.Amount || opp.StageName != oldOpp.StageName )){
+            opp.addError('Sales team should not modify important deal information until manager approval is completed');
+        }
+    }
+}
+}
