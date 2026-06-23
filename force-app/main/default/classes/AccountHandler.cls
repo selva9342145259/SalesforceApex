@@ -51,6 +51,67 @@ public static void accountShare(List<Account> accNew){
             ));
         }
    }
-   if(!shares.isEmpty) insert shares;
+   if(!shares.isEmpty) {
+   insert shares;
+   }
 }
+// Synchronize Billing Country to Contacts Billing Country
+// // Business Requirement
+// Whenever the Billing_Country_Copy__c boolien field is true Account, all related Contacts should automatically receive the same value in the custom field:
+// when Account insert or update also
+public static void addressChanges(List<Account> accNew, Map<Id, Account> oldAcc) {
+
+    Set<Id> accIds = new Set<Id>();
+
+    // Collect Account Ids
+    for (Account acc : accNew) {
+        if (
+            acc.Billing_Country_Copy__c &&
+            (oldAcc == null || !oldAcc.get(acc.Id).Billing_Country_Copy__c)
+        ) {
+            accIds.add(acc.Id);
+        }
+    }
+
+    if (accIds.isEmpty()) {
+        return;
+    }
+
+    // Map Account -> Contacts
+    Map<Id, List<Contact>> accountContactMap = new Map<Id, List<Contact>>();
+
+    for (Contact con : [
+        SELECT Id, AccountId, Billing_Country__c, Account.BillingCountry
+        FROM Contact
+        WHERE AccountId IN :accIds
+    ]) {
+
+        if (accountContactMap.containsKey(con.AccountId)) {
+            accountContactMap.get(con.AccountId).add(con);
+        } else {
+            accountContactMap.put(
+                con.AccountId,
+                new List<Contact>{ con }
+            );
+        }
+    }
+
+    List<Contact> conUpdate = new List<Contact>();
+
+    // Update Contact Billing Country
+    for (Id accId : accountContactMap.keySet()) {
+
+        for (Contact con : accountContactMap.get(accId)) {
+
+            con.Billing_Country__c = con.Account.BillingCountry;
+
+            conUpdate.add(con);
+        }
+    }
+
+    if (!conUpdate.isEmpty()) {
+        update conUpdate;
+    }
+}
+
 }
