@@ -113,5 +113,68 @@ public static void addressChanges(List<Account> accNew, Map<Id, Account> oldAcc)
         update conUpdate;
     }
 }
+// Whenever a Contact is inserted, updated, deleted, or undeleted,
+// update Account.Number_of_Contacts__c
 
+public static void contactCount(List<Contact> conNew, Map<Id, Contact> oldCon){
+
+    Set<Id> accIds = new Set<Id>();
+
+    // New records (insert/update/undelete)
+    if(conNew != null){
+        for(Contact con : conNew){
+            if(con.AccountId != null){
+                accIds.add(con.AccountId);
+            }
+        }
+    }
+
+    // Old records (update/delete)
+    if(oldCon != null){
+        for(Contact con : oldCon.values()){
+            if(con.AccountId != null){
+                accIds.add(con.AccountId);
+            }
+        }
+    }
+
+    if(accIds.isEmpty()){
+        return;
+    }
+
+    // Get count of contacts per Account
+    Map<Id,Integer> contactCount = new Map<Id,Integer>();
+
+    for(AggregateResult ar : [
+        SELECT AccountId, COUNT(Id) totalContact
+        FROM Contact
+        WHERE AccountId IN :accIds
+        GROUP BY AccountId
+    ]){
+        contactCount.put(
+            (Id)ar.get('AccountId'),
+            (Integer)ar.get('totalContact')
+        );
+    }
+
+    List<Account> updateAcc = new List<Account>();
+
+    for(Account acc : [
+        SELECT Id, Number_of_Contacts__c
+        FROM Account
+        WHERE Id IN :accIds
+    ]){
+
+        acc.Number_of_Contacts__c =
+            contactCount.containsKey(acc.Id)
+            ? contactCount.get(acc.Id)
+            : 0;
+
+        updateAcc.add(acc);
+    }
+
+    if(!updateAcc.isEmpty()){
+        update updateAcc;
+    }
+}
 }
