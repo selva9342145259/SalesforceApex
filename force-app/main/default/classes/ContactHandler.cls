@@ -50,11 +50,8 @@ public static void preventDuplicateEmail(List<Contact> conNew){
 }
 // Allow Only One Primary Contact per Account
 // Business Requirement
- 
 // Each customer Account should have only one Primary Contact.
- 
 // Whenever a Contact is inserted or updated:
- 
 // Rules
 // If Primary__c = TRUE, verify that no other Contact under the same Account is already marked as Primary.
 // If another Primary Contact already exists, prevent the save.
@@ -67,6 +64,7 @@ public static void preventDuplicateEmail(List<Contact> conNew){
                 accIds.add(con.AccountId);
         }
     }
+    
    Map<id, Id> accountContact = new Map<id, id>();
    for(Contact con :[ Select id, AccountId from Contact Where AccountId IN : accIds and Primary__c = true]){
             if(con.AccountId != null){
@@ -77,9 +75,37 @@ public static void preventDuplicateEmail(List<Contact> conNew){
                 if(con.AccountId == null || con.Primary__c != true){ 
                     continue; 
                 }
-                if(accountContact.containsKey(con.AccountId)&&accountContact.get(con.AccountId) != con.Id){
+                if(accountContact.containsKey(con.AccountId)&&accountContact.get(con.AccountId) != con.Id) {
                         con.addError('Only One primary contact allowed for account');
                 }
-            }
+      }
    }
+//    An Account can have only one Contact with Primary__c = TRUE. Prevent users from saving another Primary Contact for the same Account.
+// Whenever a new Contact is created, automatically create a follow-up Task for the Account Owner.
+// Since many Contacts may be inserted at once, create the Tasks using a Future Method.
+public static void HandlerMap( List<Contact> contactOfNew){
+      Set<Id> accIds = new Set<Id>();
+    for(Contact con : contactOfNew) {
+        if(con.Primary__c && con.AccountId != null) {
+            accIds.add(con.AccountId);
+        }
+    }
+    List<Contact> conList = [Select id,AccountId,Primary__c from Contact where AccountId IN :accIds AND Primary__c];
+    Map<Id,Integer> conMap = new Map<Id,Integer>();
+    for(Contact con : conList){
+        if(!conMap.containsKey(con.AccountId)){
+            conMap.put(con.AccountId, 1);
+        } else  {
+            conMap.get(con.AccountId)+1;
+        }
+    }
+    for(Contact con: contactOfNew){
+        Integer count = conMap.containsKey(con.AccountId) ? conMap.get(con.AccountId) : 0;
+        count++;
+        if(count > 1){
+            con.addError('One Primary Account Only Allowed ');
+        }
+    }
+    
+}
 }
