@@ -177,4 +177,43 @@ public static void contactCount(List<Contact> conNew, Map<Id, Contact> oldCon){
         update updateAcc;
     }
 }
+// Scenario 2 – Account & Contact
+// Each Account has a custom field Latest_Contact_Date__c.
+// Whenever a Contact is created or modified, update the Account with the most recent Contact Created Date.
+public static void latestTimeCapture(List<Contact> contactOfNew){
+
+    Set<Id> accIds = new Set<Id>();
+
+    for(Contact con : contactOfNew){
+        if(con.AccountId != null){
+            accIds.add(con.AccountId);
+        }
+    }
+
+    if(accIds.isEmpty()){
+        return;
+    }
+
+    List<AggregateResult> ar = [
+        SELECT AccountId, MAX(CreatedDate) latestDate
+        FROM Contact
+        WHERE AccountId IN :accIds
+        GROUP BY AccountId
+    ];
+
+    List<Account> updateAcc = new List<Account>();
+
+    for(AggregateResult ag : ar){
+        updateAcc.add(
+            new Account(
+                Id = (Id)ag.get('AccountId'),
+                Latest_Contact_Date__c = (Datetime)ag.get('latestDate')
+            )
+        );
+    }
+
+    if(!updateAcc.isEmpty()){
+        update updateAcc;
+    }
+}
 }
